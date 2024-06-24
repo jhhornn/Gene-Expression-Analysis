@@ -1,0 +1,8 @@
+"0","gse_data <- read.csv(file = ""./GSE183947_fpkm.csv"")"
+"0","dim(gse_data)"
+"1","[1]"
+"1"," 20246"
+"1","    61"
+"1","
+"
+"0","head(gse_data)"

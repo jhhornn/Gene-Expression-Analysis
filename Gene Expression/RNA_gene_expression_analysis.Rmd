@@ -1,0 +1,250 @@
+---
+title: "Gene Analysis"
+author: "jhhornn"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: yeti
+---
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r global_options, echo = FALSE, include = TRUE}
+options(width = 999)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      cache = FALSE, tidy = FALSE, size = "small")
+```
+
+
+### RNA-SEQ Gene Expression Analysis
+
+---
+
+#### Methods of Measuring Gene Expression
+
+- **DNA Microarray**: DNA-DNA hybridization. The mRNA sample is reverse-transcribed to complementary DNA. The DNA is labeled with fluorescent tags. This strand is hybridized with the complementary DNA of the gene(to be measured) on the probe. The probe is washed off to remove unhybridized strands. The intensity of the fluorescent tag shows the level of gene expression. This method can measure gene expression of specific samples or differential expression between samples.
+
+- **RNA-SEQ**: mRNA is reverse transcribed to complementary DNA; the complementary DNA is broken down into fragments and fed to the DNA sequencer, giving out reads mapped to the reference genome. A Gene Quantification Matrix is generated based on the number of reads mapped to the reference genome. Normalization can be performed on the matrix to work with it.
+
+---
+#### The NCBI Site
+
+##### GEO(Gene Expression Omnibus) Datasets
+Accessing GEO data requires the use of:
+
+- Accession ID(it's a unique ID): We'd be working with the ID "GSE183947" which is associated with a breast cancer dataset.
+- Keyword.
+
+*It is important to know the kind of nomalization that was performed on a dataset as it affects the conclusion drawn from it.*
+
+
+##### Analysis of GSE183947 Data
+
+The overview of the few processes involved in the Analysis are described below:
+
+**EDA**
+
+1. Describe what the script does, set working directory, spell out our tasks and state the required packages(with their versions). The directory path varies with where you choose to save your work. 
+```{r Script description, echo = TRUE}
+# This script manipulates gene expression data
+# setwd("~/Documents/Bioinformatics Projects/Bioinformatics_101")
+
+# Tasks
+# Read in expression matrix (FPKM)
+# Fetching metadata/clinical data using GEOquery R package
+# Demonstrate useful functions to tidy, reshape, join and explore data
+
+#Packages Requires
+# dplyr(v1.0.7)
+# tidyverse(v1.3.1)
+# GEOquery(v2.60.0)
+```
+
+2. Load the required libraries
+```{r Load libraries, echo = TRUE}
+library(tidyverse)
+library(GEOquery)
+```
+
+3. Read in the data
+
+- Reads a CSV file containing gene expression data (`./GSE183947_fpkm.csv`) into the variable `gse_data`.
+- `dim(gse_data)` prints the dimensions (number of rows and columns) of the loaded data.
+```{r Read GSE data, echo = TRUE}
+gse_data <- read.csv(file = "./GSE183947_fpkm.csv")
+dim(gse_data)
+head(gse_data)
+```
+
+4. Get the metadata from the GEO database
+
+- Retrieves metadata associated with the GEO dataset "GSE183947" using the `getGEO` function.
+- `gse` stores the retrieved data, and the object is printed to the console.
+```{r Get metadata, echo = TRUE}
+gse <- getGEO(GEO = "GSE183947", GSEMatrix = TRUE)
+gse
+
+metadata <- pData(phenoData(gse[[1]]))
+head(metadata)
+```
+
+5. Extract Metadata and modify
+
+- Extracts metadata from the GEO dataset, and the first few rows are displayed using `head`.
+- `metadata.modified` selects specific columns, renames them, and cleans up the "tissue" and "metastasis" columns by removing unnecessary prefixes.
+```{r Specified Metadata column, echo = TRUE}
+metadata.modified <- metadata %>% 
+  select(1,10,11,17) %>% 
+  rename(tissue = characteristics_ch1) %>%
+  rename(metastasis = characteristics_ch1.1) %>% 
+  mutate(tissue = gsub("tissue: ", "", tissue)) %>%
+  mutate(metastasis = gsub("metastasis: ", "", metastasis))
+
+head(gse_data)
+```
+
+6. Reshape data
+
+- Reshapes the gene expression data in wide format to long format using the `gather` function. This makes it easier for subsequent analysis.
+```{r echo = TRUE}
+data.long <- gse_data %>% 
+  rename(gene = X) %>% 
+  gather(key = "samples", value = "FPKM", -gene)
+
+head(data.long)
+```
+
+7. Join Dataframes
+
+- Performs a left join between the long-format gene expression data (`data.long`) and the modified metadata (`metadata.modified`) using the "samples" and "description" columns.
+```{r echo = TRUE}
+data.long <- data.long %>% 
+  left_join(., metadata.modified, by = c("samples" = "description"))
+
+head(data.long)
+```
+
+8. Explore Data
+
+- Filters the data for genes "BRCA1" or "BRCA2" and calculates summary statistics (mean and median FPKM values) grouped by gene and tissue.
+- Results are arranged in descending order based on mean FPKM. This section provides a quick overview of the expression characteristics of selected genes across different tissues.
+```{r echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1" | gene == "BRCA2") %>% 
+  group_by(gene, tissue) %>% 
+  summarize(mean_FPKM = mean(FPKM),
+            median_FPKM = median(FPKM)) %>% 
+  arrange(-mean_FPKM)
+```
+
+
+**PLOT**
+
+1. Describe what the script does, set working directory and spell out our tasks. The directory path varies with where you choose to save your work.
+```{r Describe task(plot), echo = TRUE}
+# scripts to visualise gene expression data (GSE183947)
+# setwd("~/Documents/Bioinformatics Projects/Bioinformatics_101")
+
+
+# Tasks
+# Visualise gene expression (RNA-Seq) data as -
+# 1. Bar plots
+# 2. Density plots
+# 3. Boxplots
+# 4. Scatterplots
+# 5. Heatmap
+```
+
+2. Load libraries
+```{r Load libraries(plot), echo = TRUE}
+library(tidyverse)
+library(ggplot2)
+```
+
+3. Barplot:
+
+   - *Data:* `data.long` with filtering on the gene "BRCA1".
+   - *Plot Type:* Barplot using `geom_col()`.
+   - *Purpose:* Represents the expression levels (FPKM) of the gene "BRCA1" across different samples and tissues. Each bar corresponds to a sample, and the height of the bar represents the FPKM value.
+```{r barplot, echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1") %>% 
+  ggplot(., aes(samples, FPKM, fill = tissue)) +
+  geom_col()
+```
+
+4. Density Plot:
+
+   - *Data:* `data.long` with filtering on the gene "BRCA1".
+   - *Plot Type:* Density plot using `geom_density()`.
+   - *Purpose:* Visualizes the distribution of FPKM values for the gene "BRCA1" across different tissues. The plot shows the probability density of the expression levels.
+```{r density plot, echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1") %>% 
+  ggplot(., aes(x = FPKM, fill = tissue)) +
+  geom_density(alpha = 0.3)
+```
+
+
+5. Box and Violin Plot:
+
+   - *Data:* `data.long` with filtering on the gene "BRCA1".
+   - *Plot Type:* Violin and Box plot using `geom_violin()` and `geom_boxplot()`.
+   - *Purpose:* Depicts the distribution of FPKM values for the gene "BRCA1" among different metastasis types. The width of the violin plot indicates the density, and the shape provides insights into the data distribution.
+```{r box plot, echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1") %>% 
+  ggplot(., aes(x = metastasis, y = FPKM)) +
+  geom_boxplot()
+```
+
+```{r violin plot, echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1") %>% 
+  ggplot(., aes(x = metastasis, y = FPKM)) +
+  geom_violin()
+```
+
+
+6. Scatterplot:
+
+   - *Data:* `data.long` with filtering on genes "BRCA1" and "BRCA2".
+   - *Plot Type:* Scatterplot using `geom_point()` with a linear regression line (`geom_smooth()`).
+   - *Purpose:* Examines the correlation between the expression levels of "BRCA1" and "BRCA2" across different tissues. Each point represents a sample, and the color distinguishes tissues. The regression line indicates the trend in the relationship.
+   
+The `spread(key = gene, value = FPKM)` function is used to pivot the data. It transforms the long-format data, where each row represents a combination of gene, sample, and FPKM value, into a wide-format where each gene has its own column. The key parameter specifies the new column names (BRCA1 and BRCA2), and the value parameter indicates the values in those columns (FPKM).
+```{r scatterplot, echo = TRUE}
+data.long %>% 
+  filter(gene == "BRCA1" | gene == "BRCA2") %>% 
+  spread(key = gene, value = FPKM) %>% 
+  ggplot(., aes(x = BRCA1, y = BRCA2, color = tissue)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+7. Heatmap:
+
+   - *Data:* `data.long` with filtering on genes of interest ("BRCA1", "BRCA2", "TP53", "ALK", "MYCN").
+   - *Plot Type:* Heatmap using `geom_tile()` and color gradient with `scale_fill_gradient()`.
+   - *Purpose:* Illustrates the expression levels (FPKM) of selected genes across different samples. Rows represent genes, columns represent samples, and the color intensity indicates the FPKM values. This plot is particularly useful for identifying patterns and relationships among the selected genes.
+```{r heatmap, echo = TRUE}
+genes.of.interest <- c("BRCA1", "BRCA2", "TP53", "ALK", "MYCN")
+
+# pdf("heatmap_save2.pdf", width = 10, height = 8)
+data.long %>% 
+  filter(gene %in% genes.of.interest) %>% 
+  ggplot(., aes(x = samples, y = gene, fill = FPKM)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red")
+# dev.off()
+```
+

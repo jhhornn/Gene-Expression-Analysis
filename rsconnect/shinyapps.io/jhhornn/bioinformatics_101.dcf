@@ -1,0 +1,10 @@
+name: bioinformatics_101
+title:
+username: jhhornn
+account: jhhornn
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10920860
+bundleId: 8140726
+url: https://jhhornn.shinyapps.io/bioinformatics_101/
+version: 1

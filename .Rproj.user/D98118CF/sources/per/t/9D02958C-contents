@@ -1,0 +1,79 @@
+---
+title: "Sequencing Data"
+author: "Oluwaseun Awosise"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: yeti
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Objectives
+- SRA and its entities
+- Download and Configure SRA Toolkit
+- Download sequencing reads (.fastq files)
+
+### Requirements
+Terminal OS:
+- SRA Toolkit (v2.1.1.3)
+
+#### SRA
+**Anatomy of SRA submmission**
+
+SRA comprises broadly of:
+
+1. BioProject: the description of the research project.
+
+- `STUDY`: which is made uo of the project title e.g Transcriptome analysis of hepatotoxicity induced by botulin in mice and Transcriptome of flowering plant. The study code starts with `SRP#`
+
+2. BioSample: the description of biological samples.
+
+- `SAMPLE`: comprises of `sample type` e.g. model organism or animal sample and plant sample, `organism` e.g. *Mus musculus domesticus* and *Fancypsis pretticus*, and `sample name`. The sample code starts with `SRS#`
+
+- `EXPERIMENT`: information about the sequencer, library preparation of the sample. Starts with `SRX#`
+
+- `RUN`: associated with the raw or sequencing files of the sample. Starts with `SRR#`
+
+
+This particular data involves retrieving sequencing data using the `SRR` ids associated with the samples we want to get the raw data of.
+
+
+**Downloading SRR Data**
+
+1. Go to [NCBI website](https://ncbi.nlm.nih.gov)
+
+2. Click on the dropdown button before the searcg bar and select GEO (Gene Expression Omnibus) which is the database we want to fetch our data from.
+
+3. In the search bar, search for `GSE183947` which is the accession id of the dataset we are working with.
+4. Scroll down to where we have `SRA Run Selector` which allows get the sequencing data.
+
+5. Click on Accession List to download a `.txt` file containing all the SRR ids associated to the samples in the cohort. Rhe SRR ids will be used to fetch the sequencing data associated with each id that corresponds to a sample in the cohort.
+
+
+**Downloading SRA Toolkit**
+
+1. Visit this [site](https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit) for your operating system.
+
+2. Extract the folder using the command `tar -vxzf sratoolkit.tar.gz`. Then create an empty folder `tmp` in the same directory you extracted the zipped folder into.
+
+3. Navigate into the extracted folder and open `bin`.
+
+4. Run the command `./vdb-config -i` inside the bin folder. This opens a terminal dialogue, navigate using the tab key.
+
+5. All settings remain the same. Navigate to `CACHE` and change the `location of user-repository` to the path to the `tmp` folder that was initially created.
+
+6. Navigate to `save` then navigate to `exit`.
+
+**Using the SRA Toolkit**
+
+Write the full path to the SRA toolkit bin folder then append `/fasterq-dump` with the parameter `--split-files` and the `SRR samples id` of the sequnce we are interested in.
+
+
+It will look like this
+`[path_to_SRA]/fasterq-dump --split-files SRR15852399`
+
+
+P.S: I am using a mac and I have homebrew installed so I installed mine using home brew

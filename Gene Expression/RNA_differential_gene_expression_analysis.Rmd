@@ -1,0 +1,28 @@
+---
+title: "Differential Gene Expression Analysis"
+author: "jhhornn"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: yeti
+---
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r global_options, echo = FALSE, include = TRUE}
+options(width = 999)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      cache = FALSE, tidy = FALSE, size = "small")
+```
+
+- **Vignette**: [link](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#standard-workflow)
+
+- **Data**: Human Airway Smooth Muscle Transcriptome Changes in Response to Asthma Medications (GSE52778)
